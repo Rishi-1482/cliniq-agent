@@ -11,6 +11,8 @@ from typing import Any
 
 import httpx
 
+import xml.etree.ElementTree as ET
+
 EUTILS_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
 DEFAULT_TIMEOUT = 30.0
 TOOL_NAME = "cliniq-agent"
@@ -25,6 +27,16 @@ class PaperSummary:
     journal: str
     pub_date: str
     doi: str | None = None
+
+@dataclass
+class PaperAbstract:
+    """Full abstract content for a single paper."""
+    pmid: str
+    title: str
+    abstract: str
+    journal: str
+    pub_date: str
+    authors: list[str]
 
 
 def _common_params() -> dict[str, str]:
@@ -131,3 +143,112 @@ def _parse_summaries(pmids: list[str], summary_data: dict[str, Any]) -> list[Pap
         ))
 
     return papers
+    
+
+async def fetch_abstract(
+    pmid: str,
+    *,
+    client: httpx.AsyncClient | None = None,
+) -> PaperAbstract | None:
+    """Fetch the full abstract and metadata for a single PubMed paper.
+
+    Args:
+        pmid: PubMed ID as a string.
+        client: Optional httpx client for reuse/testing.
+
+    Returns:
+        A PaperAbstract object, or None if the paper has no abstract
+        available (some papers, like errata, don't have one).
+    """
+    if not pmid.isdigit():
+        raise ValueError(f"pmid must be numeric, got: {pmid!r}")
+
+    own_client = client is None
+    if own_client:
+        client = httpx.AsyncClient(timeout=DEFAULT_TIMEOUT)
+
+    try:
+        params = {
+            **_common_params(),
+            "db": "pubmed",
+            "id": pmid,
+            "rettype": "abstract",
+            "retmode": "xml",
+        }
+        resp = await client.get(f"{EUTILS_BASE}/efetch.fcgi", params=params)
+        resp.raise_for_status()
+        return _parse_abstract_xml(pmid, resp.text)
+    finally:
+        if own_client:
+            await client.aclose()
+
+
+def _parse_abstract_xml(pmid: str, xml_text: str) -> PaperAbstract | None:
+    """Extract abstract fields from an EFetch XML response.
+
+    Returns None if the requested article isn't found or has no abstract.
+    """
+    root = ET.fromstring(xml_text)
+    article = root.find(".//PubmedArticle")
+    if article is None:
+        return None
+
+    # Title
+    title_el = article.find(".//ArticleTitle")
+    title = _text(title_el).rstrip(".")
+
+    # Abstract — may have multiple <AbstractText> elements with labels
+    # (Background, Methods, Results, Conclusion). We concatenate them.
+    abstract_parts: list[str] = []
+    for abs_text_el in article.findall(".//Abstract/AbstractText"):
+        label = abs_text_el.get("Label")
+        text = _text(abs_text_el)
+        if not text:
+            continue
+        if label:
+            abstract_parts.append(f"{label}: {text}")
+        else:
+            abstract_parts.append(text)
+
+    if not abstract_parts:
+        return None  # No abstract available
+
+    abstract = "\n\n".join(abstract_parts)
+
+    # Journal
+    journal_el = article.find(".//Journal/Title")
+    journal = _text(journal_el)
+
+    # Publication date — pick year at minimum
+    pub_year_el = article.find(".//Journal/JournalIssue/PubDate/Year")
+    pub_month_el = article.find(".//Journal/JournalIssue/PubDate/Month")
+    year = _text(pub_year_el)
+    month = _text(pub_month_el)
+    pub_date = f"{year} {month}".strip() if year else ""
+
+    # Authors
+    authors: list[str] = []
+    for author_el in article.findall(".//AuthorList/Author"):
+        last = _text(author_el.find("LastName"))
+        initials = _text(author_el.find("Initials"))
+        if last:
+            name = f"{last} {initials}".strip() if initials else last
+            authors.append(name)
+
+    return PaperAbstract(
+        pmid=pmid,
+        title=title,
+        abstract=abstract,
+        journal=journal,
+        pub_date=pub_date,
+        authors=authors,
+    )
+
+
+def _text(el: ET.Element | None) -> str:
+    """Safely extract text from an ElementTree element, or empty string if None."""
+    if el is None:
+        return ""
+    # itertext() concatenates text from nested elements too — some abstracts
+    # have <i>, <b>, etc. inside them
+    return "".join(el.itertext()).strip()

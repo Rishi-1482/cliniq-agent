@@ -27,3 +27,27 @@ Root cause: anaconda's `base` environment was auto-activating in every shell. `u
 Fix: `conda deactivate`, disabled auto-activation with `conda config --set auto_activate_base false`, deleted `.venv`, ran `uv sync` clean.
 
 **Lesson:** uv and conda do not play well together. On any machine with conda installed, the first thing to verify in a uv project is `which python` does not point into `anaconda3/`. The "it works from -c but not from script" pattern was the key diagnostic — same env should give same result.
+
+**Understanding tests (2026-07-14)**
+
+Wrote three unit tests for `_parse_summaries`. The exercise of intentionally breaking the parser and watching the test catch it made the value obvious — 2 seconds of test run vs. 30 minutes of "why is my agent returning weird data" debugging.
+
+**What I test:** pure logic functions where input → output has rules. Parsers, transformers, business logic.
+
+**What I don't test (yet):** network calls, the MCP server, the LLM. Different tools for those (mocks, integration tests, evals).
+
+**Design principle:** the parser is separated from the HTTP call in `search_pubmed` specifically so it's testable in isolation. If they were fused, testing would require mocking `httpx`, and every test would be slower and more fragile.
+
+**Made scripts self-bootstrapping**
+
+After the editable install regressed for the fourth time, I stopped trying to
+make it stable and instead made every entry-point script add the project root
+to sys.path explicitly. `conftest.py` handles pytest, `scripts/_bootstrap.py`
+handles the manual scripts, and inline sys.path.insert handles agent/ and
+mcp_server/.
+
+Tradeoff: purists dislike sys.path manipulation. In practice, for a
+research/agent project with entry-point scripts, it removes a whole category
+of environment bugs. If this ever becomes an installable library, I'll rework
+the entry points to use console_scripts — but for now, "clone and run" beats
+"clone, sync, hope."

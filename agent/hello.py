@@ -1,7 +1,8 @@
 """Hello-world LangGraph agent that calls the ClinIQ MCP server."""
 import asyncio
-import os
+import sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from dotenv import load_dotenv
 from langchain_mcp_adapters.client import MultiServerMCPClient
@@ -37,10 +38,16 @@ async def main():
     llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
     agent = create_react_agent(llm, tools)
 
+    prompt = (
+        "Find one recent paper by Stephen Adamo."
+        "Then fetch its abstract and give me a 2-sentence summary "
+        "of what the paper actually did."
+    )
+
     # Run a query that should make the agent call the echo tool
-    print("\nAsking agent: 'Use the echo tool to say hello back to me.'")
+    print(f"\nAsking agent: '{prompt}'")
     result = await agent.ainvoke(
-        {"messages": [("user", "Use the echo tool to say hello back to me.")]}
+        {"messages": [("user", prompt)]}
     )
 
     # Print the final assistant message
