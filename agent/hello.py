@@ -16,6 +16,7 @@ SERVER_PATH = str(Path(__file__).parent.parent / "mcp_server" / "server.py")
 
 async def main():
     # Configure the MCP client to launch our server as a subprocess
+    print(f"SERVER_PATH: {SERVER_PATH}")
     client = MultiServerMCPClient(
         {
             "cliniq": {

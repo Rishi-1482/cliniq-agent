@@ -18,3 +18,12 @@
 Got the MCP server + LangGraph agent talking end-to-end. Was confused why the agent said "hello" instead of "echo: hello" — turns out the tool returned the right thing, but the LLM summarizes tool output into a natural response by default. The raw tool output appears as a ToolMessage in the message history, and the LLM produces a separate AIMessage as its final answer. To get verbatim output, the prompt has to explicitly ask for it.
 Decision: keep the noise around ListToolsRequest for now — it's stderr output from FastMCP and useful for debugging. Will silence in production.
 
+**Debug: ModuleNotFoundError from anaconda-uv conflict**
+
+Symptom: `uv run python -c "import mcp_server"` succeeded from the project root, but `uv run python scripts/try_pubmed.py` failed with ModuleNotFoundError. Same venv, same Python, different result.
+
+Root cause: anaconda's `base` environment was auto-activating in every shell. `uv run` was launching the venv but conda's env vars were leaking into the subprocess, causing Python to load anaconda's stdlib (`/opt/anaconda3/lib/python3.12/...`) while looking in the venv's site-packages — a broken hybrid environment. The `.pth` files were also getting concatenated without newlines, which mangled `sys.path`.
+
+Fix: `conda deactivate`, disabled auto-activation with `conda config --set auto_activate_base false`, deleted `.venv`, ran `uv sync` clean.
+
+**Lesson:** uv and conda do not play well together. On any machine with conda installed, the first thing to verify in a uv project is `which python` does not point into `anaconda3/`. The "it works from -c but not from script" pattern was the key diagnostic — same env should give same result.

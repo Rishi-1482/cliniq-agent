@@ -1,5 +1,6 @@
 """FastMCP server for ClinIQ. Hello-world version with one trivial tool."""
 from mcp.server.fastmcp import FastMCP
+from mcp_server.tools.pubmed import search_pubmed
 
 mcp = FastMCP("cliniq")
 
