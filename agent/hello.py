@@ -39,10 +39,13 @@ async def main():
     agent = create_react_agent(llm, tools)
 
     prompt = (
-        "Find one recent paper by Stephen Adamo."
-        "Then fetch its abstract and give me a 2-sentence summary "
-        "of what the paper actually did."
+        "I want to understand how researchers are evaluating deep learning models "
+        "for mammography screening. Search PubMed for recent papers on this topic, "
+        "index the top 5 into your corpus, then use your corpus to answer: "
+        "what evaluation metrics are commonly reported, and how do papers "
+        "validate against radiologist performance? Cite the PMIDs you're drawing from."
     )
+
 
     # Run a query that should make the agent call the echo tool
     print(f"\nAsking agent: '{prompt}'")
