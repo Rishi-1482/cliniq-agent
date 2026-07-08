@@ -1,4 +1,4 @@
-"""Run the partial graph (planner + retriever only) end-to-end."""
+"""Run the LangGraph agent through planner → retriever → indexer → reader → reflector."""
 import _bootstrap  # noqa: F401
 import asyncio
 import uuid
@@ -24,17 +24,22 @@ async def main():
 
     print("=" * 60)
     print("Question:", result["question"])
-    print()
-    print("Sub-questions:")
+    print(f"\nIterations: {result.get('iteration')}")
+    print(f"Enough evidence: {result.get('enough_evidence')}")
+    print(f"Missing topics: {result.get('missing_topics', [])}")
+    print(f"\nSub-questions ({len(result.get('sub_questions', []))}):")
     for sq in result.get("sub_questions", []):
         print(f"  - {sq}")
-    print()
-    print(f"Retrieved {len(result.get('retrieved_pmids', []))} unique PMIDs:")
-    for pmid in result.get("retrieved_pmids", []):
-        print(f"  - {pmid}")
-    print()
-    print(f"Iteration: {result.get('iteration')}")
-    print(f"Thread ID (for follow-ups): {thread_id}")
+
+    findings = result.get("findings", [])
+    print(f"\nFindings ({len(findings)} unique chunks):")
+    for f in findings[:5]:
+        print(f"  [{f['pmid']} / {f['section']}] score={f['similarity_score']:.3f}")
+        print(f"    {f['text'][:150]}...")
+    if len(findings) > 5:
+        print(f"  ... and {len(findings) - 5} more")
+
+    print(f"\nThread ID: {thread_id}")
 
 
 if __name__ == "__main__":
