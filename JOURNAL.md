@@ -51,3 +51,21 @@ research/agent project with entry-point scripts, it removes a whole category
 of environment bugs. If this ever becomes an installable library, I'll rework
 the entry points to use console_scripts — but for now, "clone and run" beats
 "clone, sync, hope."
+
+**Observation: answer drifts toward corpus composition (2026-07-07)**
+
+First full end-to-end run produced a good cited answer, but the answer drifted
+toward breast density assessment specifically — one narrow slice of the
+broader question about "evaluating DL vs radiologist performance in mammography
+screening." Root cause: the corpus was small (~7 papers) and skewed by which
+papers PubMed's relevance ranking surfaced for the sub-questions. Semantic
+retrieval then preferentially pulled from those density-focused papers.
+
+Not a code bug — a behavioral characteristic of RAG systems when the corpus
+is small/skewed. Two potential mitigations for later:
+  1. Retrieve more papers per sub-question (retmax=10+) at the cost of
+     latency and noise.
+  2. Add a coverage check to Reader — if all top chunks come from ≤2 papers,
+     re-query with different phrasing or broader top-k.
+
+Filing this for Week 3's eval to quantify.

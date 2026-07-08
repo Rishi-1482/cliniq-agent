@@ -14,6 +14,10 @@ from agent.nodes.reader import reader_node
 from agent.nodes.reflector import reflector_node
 from agent.nodes.retriever import retriever_node
 from agent.state import AgentState
+from agent.nodes.synthesizer import synthesizer_node
+
+
+
 
 MAX_ITERATIONS = 3
 
@@ -29,7 +33,7 @@ def _route_from_reflector(state: AgentState) -> str:
 
 def build_graph(mcp_client):
     builder = StateGraph(AgentState)
-
+    builder.add_node("synthesizer", synthesizer_node)
     builder.add_node("planner", planner_node)
     builder.add_node(
         "retriever",
@@ -57,9 +61,10 @@ def build_graph(mcp_client):
         _route_from_reflector,
         {
             "replan": "planner",  # loop back
-            "done": END,           # will become "synthesizer" in the next chunk
+            "done": "synthesizer",           # will become "synthesizer" in the next chunk
         },
     )
+    builder.add_edge("synthesizer", END)
 
     return builder.compile(checkpointer=MemorySaver())
 

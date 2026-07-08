@@ -26,19 +26,17 @@ async def main():
     print("Question:", result["question"])
     print(f"\nIterations: {result.get('iteration')}")
     print(f"Enough evidence: {result.get('enough_evidence')}")
-    print(f"Missing topics: {result.get('missing_topics', [])}")
-    print(f"\nSub-questions ({len(result.get('sub_questions', []))}):")
-    for sq in result.get("sub_questions", []):
-        print(f"  - {sq}")
-
-    findings = result.get("findings", [])
-    print(f"\nFindings ({len(findings)} unique chunks):")
-    for f in findings[:5]:
-        print(f"  [{f['pmid']} / {f['section']}] score={f['similarity_score']:.3f}")
-        print(f"    {f['text'][:150]}...")
-    if len(findings) > 5:
-        print(f"  ... and {len(findings) - 5} more")
-
+    print()
+    print("=" * 60)
+    print("ANSWER")
+    print("=" * 60)
+    print(result.get("final_answer", "(no answer generated)"))
+    print()
+    print("=" * 60)
+    print("CITATIONS")
+    print("=" * 60)
+    for c in result.get("citations", []):
+        print(f"  [{c['pmid']}] {c['title']}")
     print(f"\nThread ID: {thread_id}")
 
 
