@@ -42,7 +42,8 @@ async def retriever_node(state: AgentState, mcp_client: MultiServerMCPClient) ->
     tools_by_name = {t.name: t for t in await mcp_client.get_tools()}
     search_tool = tools_by_name["search_pubmed"]
 
-    all_pmids: list[str] = []
+    # Start from PMIDs already collected in previous iterations
+    all_pmids: list[str] = list(state.get("retrieved_pmids", []))
     per_query_counts: list[str] = []
 
     for sq in sub_questions:

@@ -69,3 +69,33 @@ is small/skewed. Two potential mitigations for later:
      re-query with different phrasing or broader top-k.
 
 Filing this for Week 3's eval to quantify.
+
+**Eval harness surfaced real bugs (2026-07-11)**
+
+First eval run on 5 seed questions showed mean_citation_faithfulness = 0.483,
+which looked alarming. Investigation revealed two separate issues:
+
+1. **State-field data loss.** `retrieved_pmids` and `indexed_pmids` were empty
+   in the final state despite the Retriever and Indexer nodes clearly running.
+   Root cause: on iteration 2 the retriever returned new results via
+   `{"retrieved_pmids": new_list}` which *replaced* iteration 1's results
+   (LangGraph replaces fields without a reducer). When the second search
+   returned 0 hits for a sub-question, the list became [].
+   Fix: `retriever_node` now seeds `all_pmids` from `state.get("retrieved_pmids", [])`
+   so results accumulate across iterations. Same fix applied to `indexer_node`
+   for `indexed_pmids`.
+
+2. **Wrong denominator for faithfulness.** Even with the state issue, faithfulness
+   was comparing cited_pmids against retrieved_pmids. But the Synthesizer only
+   sees findings (Reader output), not the retrieval set. Citations are faithful
+   if they trace back to what the Synthesizer was shown, not what was searched
+   for. Fixed by comparing against top_findings_pmids.
+
+**Meta-lesson: metrics require the same rigor as production code.** My first
+faithfulness metric looked reasonable in isolation but measured the wrong
+thing. Without eval, I would have shipped an agent I thought had 100%
+citation faithfulness. With eval, I discovered a metric bug AND a state
+bug in one 5-question run.
+
+Interview material: "The value of evaluation is not the numbers — it's the
+questions you're forced to ask when the numbers surprise you."

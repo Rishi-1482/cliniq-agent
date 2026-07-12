@@ -26,8 +26,11 @@ async def indexer_node(state: AgentState, mcp_client: MultiServerMCPClient) -> d
     if isinstance(result, list) and result:
         result = result[0]
 
+    existing_indexed = state.get("indexed_pmids", [])
+    all_indexed = list(dict.fromkeys(existing_indexed + pmids))
+
     return {
-        "indexed_pmids": pmids,  # for our purposes, all attempted PMIDs
+        "indexed_pmids": all_indexed,  # accumulated across iterations
         "messages": [
             HumanMessage(content=(
                 f"[Indexer] papers_indexed={result.get('papers_indexed', 0)} "

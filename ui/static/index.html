@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ClinIQ — Clinical Literature Agent</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      padding: 20px 40px;
+      border-bottom: 1px solid #1e2130;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    header .badge {
+      font-size: 0.7rem;
+      background: #1a3a5c;
+      color: #5baeff;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-weight: 500;
+    }
+
+    .main {
+      flex: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 40px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .intro {
+      color: #888;
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
+    .search-box {
+      display: flex;
+      gap: 10px;
+    }
+
+    .search-box textarea {
+      flex: 1;
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      color: #e0e0e0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.95rem;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      transition: border-color 0.15s;
+      line-height: 1.5;
+    }
+
+    .search-box textarea:focus {
+      border-color: #3a6fd8;
+    }
+
+    .search-box button {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 0 24px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      cursor: pointer;
+      align-self: flex-start;
+      height: 48px;
+      transition: background 0.15s;
+      white-space: nowrap;
+    }
+
+    .search-box button:hover:not(:disabled) { background: #1d4ed8; }
+    .search-box button:disabled { background: #2a2d3e; color: #555; cursor: not-allowed; }
+
+    .examples {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .examples span {
+      font-size: 0.8rem;
+      color: #555;
+      padding-top: 4px;
+    }
+
+    .example-btn {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      color: #888;
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .example-btn:hover { border-color: #3a6fd8; color: #aaa; }
+
+    #status-bar {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      color: #888;
+      font-size: 0.88rem;
+    }
+
+    .spinner {
+      width: 16px;
+      height: 16px;
+      border: 2px solid #333;
+      border-top-color: #3a6fd8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #result {
+      display: none;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .result-card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 10px;
+      padding: 24px;
+    }
+
+    .result-card h2 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #555;
+      margin-bottom: 16px;
+    }
+
+    #answer-text {
+      font-size: 0.95rem;
+      line-height: 1.75;
+      color: #d0d0d0;
+      white-space: pre-wrap;
+    }
+
+    /* Highlight [PMID: ...] citations */
+    #answer-text .cite {
+      background: #1a3a5c;
+      color: #5baeff;
+      border-radius: 3px;
+      padding: 0 4px;
+      font-size: 0.85em;
+      cursor: pointer;
+    }
+
+    .citations-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .citation-item {
+      background: #0f1117;
+      border: 1px solid #1e2130;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 0.85rem;
+    }
+
+    .citation-item .pmid {
+      color: #5baeff;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+
+    .citation-item .title {
+      color: #aaa;
+      margin-top: 2px;
+    }
+
+    .citation-item a {
+      color: #5baeff;
+      text-decoration: none;
+      font-size: 0.75rem;
+      margin-left: 8px;
+    }
+
+    .citation-item a:hover { text-decoration: underline; }
+
+    .meta-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .meta-item {
+      font-size: 0.82rem;
+      color: #666;
+    }
+
+    .meta-item strong {
+      color: #999;
+    }
+
+    .error-card {
+      background: #2a1a1a;
+      border: 1px solid #5a2020;
+      border-radius: 10px;
+      padding: 20px;
+      color: #f87171;
+      font-size: 0.9rem;
+    }
+
+    .eval-btn-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .eval-btn {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      color: #888;
+      border-radius: 6px;
+      padding: 8px 16px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .eval-btn:hover { border-color: #3a6fd8; color: #aaa; }
+
+    #eval-result {
+      display: none;
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    #eval-result pre {
+      font-size: 0.82rem;
+      color: #aaa;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>ClinIQ</h1>
+    <span class="badge">Clinical Literature Agent</span>
+  </header>
+
+  <div class="main">
+    <p class="intro">
+      Ask a biomedical research question. The agent searches PubMed, indexes relevant papers, and synthesizes a cited answer.
+    </p>
+
+    <div class="search-box">
+      <textarea id="question" placeholder="e.g. What is the diagnostic accuracy of deep learning models for breast cancer detection in mammography compared to radiologists?" rows="3"></textarea>
+      <button id="ask-btn" onclick="ask()">Ask</button>
+    </div>
+
+    <div class="examples">
+      <span>Try:</span>
+      <button class="example-btn" onclick="setQ('What is the diagnostic accuracy of deep learning models for breast cancer detection in mammography?')">DL mammography accuracy</button>
+      <button class="example-btn" onclick="setQ('How is CRISPR-Cas9 being used to treat sickle cell disease in clinical trials?')">CRISPR sickle cell trials</button>
+      <button class="example-btn" onclick="setQ('What are current explainable AI approaches in radiology and their impact on clinical adoption?')">XAI in radiology</button>
+      <button class="example-btn" onclick="setQ('Does eye-tracking data predict radiologist errors in cancer detection?')">Eye-tracking & errors</button>
+    </div>
+
+    <div id="status-bar">
+      <div class="spinner"></div>
+      <span id="status-text">Running agent...</span>
+    </div>
+
+    <div id="result"></div>
+
+    <div class="eval-btn-row">
+      <button class="eval-btn" onclick="scoreLatest()">Score Latest Eval Run</button>
+    </div>
+    <div id="eval-result"><pre id="eval-pre"></pre></div>
+  </div>
+
+  <script>
+    function setQ(text) {
+      document.getElementById('question').value = text;
+    }
+
+    function highlightCitations(text) {
+      return text.replace(/\[PMID:\s*([\d,\s]+)\]/g, (match) => {
+        return `<span class="cite">${match}</span>`;
+      });
+    }
+
+    async function ask() {
+      const q = document.getElementById('question').value.trim();
+      if (!q) return;
+
+      const btn = document.getElementById('ask-btn');
+      const statusBar = document.getElementById('status-bar');
+      const statusText = document.getElementById('status-text');
+      const resultDiv = document.getElementById('result');
+
+      btn.disabled = true;
+      statusBar.style.display = 'flex';
+      statusText.textContent = 'Running agent (this takes 30–90 seconds)...';
+      resultDiv.style.display = 'none';
+      resultDiv.innerHTML = '';
+
+      try {
+        const resp = await fetch('/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: q }),
+        });
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split('\n');
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith('data: ')) continue;
+            const data = JSON.parse(line.slice(6));
+
+            if (data.status === 'running') {
+              statusText.textContent = data.message;
+            } else if (data.status === 'error') {
+              statusBar.style.display = 'none';
+              resultDiv.style.display = 'flex';
+              resultDiv.innerHTML = `<div class="error-card"><strong>Error:</strong> ${data.message}</div>`;
+            } else if (data.status === 'done') {
+              statusBar.style.display = 'none';
+              resultDiv.style.display = 'flex';
+              renderResult(data, q, resultDiv);
+            }
+          }
+        }
+      } catch (err) {
+        statusBar.style.display = 'none';
+        resultDiv.style.display = 'flex';
+        resultDiv.innerHTML = `<div class="error-card"><strong>Network error:</strong> ${err.message}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderResult(data, question, container) {
+      const citationsHtml = (data.citations || []).map(c => `
+        <div class="citation-item">
+          <div class="pmid">PMID: ${c.pmid} <a href="https://pubmed.ncbi.nlm.nih.gov/${c.pmid}/" target="_blank">↗ PubMed</a></div>
+          <div class="title">${c.title || ''}</div>
+        </div>
+      `).join('');
+
+      const answerHtml = highlightCitations(data.final_answer || '');
+
+      container.innerHTML = `
+        <div class="result-card">
+          <h2>Answer</h2>
+          <div id="answer-text">${answerHtml}</div>
+        </div>
+        ${data.citations && data.citations.length > 0 ? `
+          <div class="result-card">
+            <h2>Citations (${data.citations.length})</h2>
+            <div class="citations-list">${citationsHtml}</div>
+          </div>
+        ` : ''}
+        <div class="result-card">
+          <h2>Run Details</h2>
+          <div class="meta-row">
+            <div class="meta-item"><strong>Iterations:</strong> ${data.iterations}</div>
+            <div class="meta-item"><strong>Retrieved PMIDs:</strong> ${(data.retrieved_pmids || []).length}</div>
+            <div class="meta-item"><strong>Findings used:</strong> ${(data.top_findings_pmids || []).length} chunks</div>
+            <div class="meta-item"><strong>Evidence sufficient:</strong> ${data.enough_evidence ? 'Yes' : 'No'}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function scoreLatest() {
+      const evalResult = document.getElementById('eval-result');
+      const evalPre = document.getElementById('eval-pre');
+      evalResult.style.display = 'block';
+      evalPre.textContent = 'Scoring...';
+
+      try {
+        const resp = await fetch('/score', { method: 'POST' });
+        const data = await resp.json();
+        evalPre.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        evalPre.textContent = `Error: ${err.message}`;
+      }
+    }
+
+    // Submit on Ctrl/Cmd+Enter
+    document.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') ask();
+    });
+  </script>
+</body>
+</html>

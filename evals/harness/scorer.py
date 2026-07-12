@@ -17,10 +17,11 @@ def score_result(result: dict[str, Any], k: int = 10) -> dict[str, float]:
     expected = result.get("expected_relevant_pmids", [])
     retrieved = result.get("retrieved_pmids", [])
     cited = result.get("cited_pmids", [])
+    top_findings_pmids = result.get("top_findings_pmids", [])
 
     return {
         "recall_at_k": recall_at_k(retrieved, expected, k=k),
-        "citation_faithfulness": citation_faithfulness(cited, retrieved),
+        "citation_faithfulness": citation_faithfulness(cited, top_findings_pmids),
         "citation_coverage": citation_coverage(cited, expected),
         "iterations": result.get("iterations", 0),
         "elapsed_seconds": result.get("elapsed_seconds", 0),
