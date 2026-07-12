@@ -1,0 +1,37 @@
+[
+    {
+      "id": "q001",
+      "question": "What is the diagnostic accuracy of deep learning models for breast cancer detection in mammography compared to radiologists?",
+      "category": "comparison_factual",
+      "expected_relevant_pmids": [],
+      "gold_facts": []
+    },
+    {
+      "id": "q002",
+      "question": "How is CRISPR-Cas9 being used to treat sickle cell disease in clinical trials?",
+      "category": "specific_factual",
+      "expected_relevant_pmids": [],
+      "gold_facts": []
+    },
+    {
+      "id": "q003",
+      "question": "What evaluation metrics are commonly reported when validating AI systems against radiologist performance in medical imaging?",
+      "category": "methodology",
+      "expected_relevant_pmids": [],
+      "gold_facts": []
+    },
+    {
+      "id": "q004",
+      "question": "What are the current approaches to explainable AI (XAI) in radiology, and how do they impact clinical adoption?",
+      "category": "broad_literature",
+      "expected_relevant_pmids": [],
+      "gold_facts": []
+    },
+    {
+      "id": "q005",
+      "question": "Does eye-tracking data reveal patterns that predict radiologist errors in cancer detection?",
+      "category": "specific_factual",
+      "expected_relevant_pmids": [],
+      "gold_facts": []
+    }
+  ]
